@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Locations - I-OPS Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.js') }}"></script>
+
+    <style>
+       * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0a0e27;
+    --bg-secondary: #1a1f3a;
+    --bg-card: #1e2541;
+    --text-primary: #ffffff;
+    --text-secondary: #a0aec0;
+    --accent: #6366f1;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --sidebar-width: 260px;
+    --sidebar-collapsed: 70px;
+}
+
+/* Base */
+
+body {
+    background: var(--bg-primary);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+}
+
+/* Allow inputs to work over containers with pointer-events tricks */
+
+input, textarea, select, button {
+    pointer-events: auto !important;
+    user-select: text !important;
+    -webkit-user-select: text !important;
+}
+
+input:focus, textarea:focus, select:focus {
+    pointer-events: auto !important;
+}
+
+/* Icon helpers */
+
+.icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.icon-lg {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.icon-xl {
+    width: 2rem;
+    height: 2rem;
+}
+
+.icon-white {
+    filter: brightness(0) invert(1);
+}
+
+.icon-accent {
+    filter: brightness(0) saturate(100%) invert(45%) sepia(89%) saturate(2234%) hue-rotate(226deg) brightness(98%) contrast(93%);
+}
+
+.icon-warning {
+    filter: brightness(0) saturate(100%) invert(67%) sepia(76%) saturate(470%) hue-rotate(357deg) brightness(101%) contrast(97%);
+}
+
+.icon-danger {
+    filter: brightness(0) saturate(100%) invert(32%) sepia(97%) saturate(2580%) hue-rotate(345deg) brightness(99%) contrast(92%);
+}
+
+.icon-success {
+    filter: brightness(0) saturate(100%) invert(61%) sepia(48%) saturate(752%) hue-rotate(105deg) brightness(94%) contrast(87%);
+}
+
+/* Sidebar */
+
+.sidebar {
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    transition: all 0.3s ease;
+    border-right: 1px solid rgba(255,255,255,0.05);
+    z-index: 1000;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed);
+}
+
+.sidebar-header {
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.sidebar-logo .logo-text {
+    white-space: nowrap;
+    transition: opacity 0.3s;
+}
+
+.sidebar.collapsed .logo-text {
+    opacity: 0;
+    display: none;
+}
+
+.sidebar-toggle {
+    background: rgba(255,255,255,0.05);
+    border: none;
+    color: var(--text-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.sidebar-menu {
+    padding: 20px 0;
+}
+
+.menu-item {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.3s;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+}
+
+.menu-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+}
+
+.menu-item.active {
+    background: rgba(99,102,241,0.1);
+    color: var(--accent);
+    border-left-color: var(--accent);
+}
+
+.menu-item .menu-text {
+    white-space: nowrap;
+    transition: opacity 0.3s;
+}
+
+.sidebar.collapsed .menu-text {
+    opacity: 0;
+    display: none;
+}
+
+.sidebar.collapsed .menu-item {
+    justify-content: center;
+    padding: 14px 10px;
+}
+
+/* Mobile sidebar toggle */
+
+.mobile-sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: var(--accent);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Main content */
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    min-height: 100vh;
+    transition: all 0.3s ease;
+}
+
+.sidebar.collapsed + .main-content {
+    margin-left: var(--sidebar-collapsed);
+    width: calc(100% - var(--sidebar-collapsed));
+}
+
+/* Header */
+
+.header {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--accent) 100%);
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-text h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.header-text p {
+    margin: 8px 0 0 0;
+    opacity: 0.9;
+}
+
+/* Header actions and buttons */
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.export-btn {
+    background: linear-gradient(135deg, var(--success), #059669);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.export-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(16,185,129,0.4);
+}
+
+.refresh-btn {
+    background: rgba(99,102,241,0.9);
+}
+
+.refresh-btn:hover {
+    box-shadow: 0 8px 20px rgba(99,102,241,0.4);
+}
+
+.add-location-btn {
+    background: linear-gradient(135deg, var(--accent), #5558e3);
+}
+
+.add-location-btn:hover {
+    box-shadow: 0 8px 20px rgba(99,102,241,0.4);
+}
+
+/* Primary add button (locations page) */
+
+.add-btn {
+    background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 13px 28px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+    transition: all 0.2s ease;
+}
+
+.add-btn:hover {
+    opacity: 0.9;
+}
+
+/* Buttons (shared) */
+
+.btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+}
+
+.btn-secondary {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+/* Container */
+
+.container-main {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 40px 32px;
+}
+
+/* Filter card / time filters */
+
+.filter-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.filter-options {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.filter-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+}
+
+.filter-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.custom-date-range {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.date-input {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.apply-filter-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.apply-filter-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.4);
+}
+
+/* Global stats (dashboard cards) */
+
+.global-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+
+.stat-icon.total {
+    background: rgba(99,102,241,0.2);
+    color: var(--accent);
+}
+
+.stat-icon.warning {
+    background: rgba(245,158,11,0.2);
+    color: var(--warning);
+}
+
+.stat-icon.critical {
+    background: rgba(239,68,68,0.2);
+    color: var(--danger);
+}
+
+.stat-value {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+/* Section header */
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+/* Locations layouts */
+
+/* Grid for generic location cards (dashboard) */
+
+.locations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 24px;
+}
+
+/* Fancy locations list layout */
+
+.locations-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 28px;
+}
+
+/* Location cards (fancy version, main) */
+
+.location-card {
+    background: linear-gradient(145deg, rgba(30, 37, 65, 1) 0%, rgba(26, 31, 58, 1) 100%);
+    border-radius: 18px;
+    padding: 32px;
+    border: 1px solid rgba(99,102,241,0.25);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    position: relative;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.location-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--success));
+    border-radius: 18px 18px 0 0;
+}
+
+.location-card:hover {
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    border-color: rgba(99,102,241,0.4);
+}
+
+/* Location card header / info */
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(99,102,241,0.15);
+    gap: 20px;
+}
+
+.location-title {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    flex: 1;
+    min-width: 0;
+}
+
+.location-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(99,102,241,0.1));
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: var(--accent);
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.2);
+    border: 1px solid rgba(99,102,241,0.3);
+}
+
+.location-info {
+    flex: 1;
+    min-width: 0;
+    padding-top: 4px;
+}
+
+.location-name {
+    margin: 0 0 8px 0;
+    font-size: 22px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.location-url {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-family: 'Courier New', monospace;
+    background: rgba(0,0,0,0.2);
+    padding: 6px 12px;
+    border-radius: 6px;
+    display: inline-block;
+    border: 1px solid rgba(255,255,255,0.05);
+    word-break: break-all;
+}
+
+.card-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.btn-edit {
+    background: linear-gradient(135deg, rgba(99,102,241,0.25), rgba(99,102,241,0.15));
+    color: var(--accent);
+    border: 1px solid rgba(99,102,241,0.4);
+}
+
+.btn-edit:hover {
+    background: linear-gradient(135deg, rgba(99,102,241,0.35), rgba(99,102,241,0.25));
+    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+}
+
+.btn-delete {
+    background: linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.15));
+    color: var(--danger);
+    border: 1px solid rgba(239,68,68,0.4);
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, rgba(239,68,68,0.35), rgba(239,68,68,0.25));
+    box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+}
+
+/* Metadata inside location card */
+
+.metadata-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.metadata-box {
+    padding: 18px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: all 0.2s ease;
+}
+
+.metadata-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.metadata-value {
+    font-size: 17px;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.metadata-icon {
+    font-size: 26px;
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+/* Status badges */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.badge-online {
+    background: rgba(16,185,129,0.2);
+    color: var(--success);
+    border: 1px solid rgba(16,185,129,0.4);
+}
+
+.badge-offline {
+    background: rgba(239,68,68,0.2);
+    color: var(--danger);
+    border: 1px solid rgba(239,68,68,0.4);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Simple status for dashboard cards */
+
+.status-ok {
+    background: rgba(16,185,129,0.2);
+    color: var(--success);
+}
+
+.status-problem {
+    background: rgba(239,68,68,0.2);
+    color: var(--danger);
+}
+
+/* Metrics inside dashboard cards */
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.metric {
+    background: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.metric-value {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.metric-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Modal (generic overlay) */
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    animation: fadeIn 0.3s;
+    padding: 20px;
+}
+
+.modal-overlay.active {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.modal {
+    background: var(--bg-card);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    animation: slideUp 0.3s;
+    position: relative;
+    z-index: 2001;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(50px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+    padding: 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-card);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    background: rgba(255,255,255,0.05);
+    border: none;
+    color: var(--text-primary);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.modal-close:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.modal-body {
+    padding: 24px;
+    background: var(--bg-card);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.form-input {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.form-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--bg-primary);
+}
+
+.modal-footer {
+    padding: 24px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    background: var(--bg-card);
+}
+
+/* Add-location specific modal (backdrop + wrapper) */
+
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    z-index: 9998;
+}
+
+.modal-backdrop.show {
+    display: block;
+}
+
+.modal-wrapper {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    overflow-y: auto;
+    padding: 40px 20px;
+}
+
+.modal-wrapper.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Fancy dialog version inside wrapper */
+
+.modal-dialog {
+    background: #1e2541;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    border: 2px solid #6366f1;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 24px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-body .form-group {
+    margin-bottom: 24px;
+}
+
+.form-label {
+    font-size: 15px;
+}
+
+.form-control {
+    width: 100%;
+    background: #0a0e27;
+    border: 2px solid #6366f1;
+    color: #ffffff;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.form-control::placeholder {
+    color: rgba(255,255,255,0.4);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #818cf8;
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.2);
+    background: #0a0e27;
+}
+
+.form-control:disabled {
+    background: rgba(255,255,255,0.05);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.modal-footer {
+    padding: 24px 32px;
+    border-top: 2px solid rgba(99,102,241,0.3);
+    background: rgba(0,0,0,0.2);
+}
+
+/* Loading & error */
+
+.loading {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.loading-container {
+    text-align: center;
+    padding: 100px 20px;
+}
+
+.spinner {
+    width: 64px;
+    height: 64px;
+    border: 4px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 24px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error-state {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid var(--danger);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    color: var(--danger);
+}
+
+/* Refresh indicator (top-right pill) */
+
+.refresh-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(99,102,241,0.9);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 999;
+}
+
+.refresh-indicator.show {
+    opacity: 1;
+}
+
+.refresh-indicator .pulse {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse-anim 1s infinite;
+}
+
+@keyframes pulse-anim {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.3; transform: scale(1.2); }
+}
+
+/* Add-location modal state overrides */
+
+#addLocationModal.active {
+    display: flex !important;
+    background: rgba(0,0,0,0.85) !important;
+}
+
+#addLocationModal.active .modal {
+    display: block !important;
+    background: #1e2541 !important;
+    color: white !important;
+    border: 3px solid #6366f1 !important;
+    min-height: 400px !important;
+}
+
+#addLocationModal.active .modal * {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Responsive */
+
+@media (max-width: 1024px) {
+    .metadata-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .locations-list {
+        grid-template-columns: 1fr;
+    }
+
+    .metadata-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card-header {
+        flex-direction: column;
+    }
+
+    .card-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .mobile-sidebar-toggle {
+        display: flex;
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sidebar.collapsed + .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .export-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .custom-date-range {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .custom-date-range input,
+    .custom-date-range button {
+        width: 100%;
+    }
+
+    .modal {
+        width: 95%;
+        max-height: 95vh;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <!-- Sidebar omitted for brevity, same as previous version -->
+ <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header" onclick="toggleSidebar()">
+            <div class="sidebar-logo">
+                <img src="{{ url_for('static', filename='bootstrap-icons/diagram-3.svg') }}" alt="" class="icon-xl icon-accent">
+                <span class="logo-text">I-OPS Monitor</span>
+            </div>
+            
+        </div>
+        
+        <nav class="sidebar-menu">
+            <a href="/" class="menu-item" data-page="dashboard">
+                <img src="{{ url_for('static', filename='bootstrap-icons/speedometer2.svg') }}" alt="" class="icon icon-white">
+                <span class="menu-text">Dashboard</span>
+            </a>
+            
+            <a href="/schedule" class="menu-item" data-page="schedule">
+                <img src="{{ url_for('static', filename='bootstrap-icons/calendar-check.svg') }}" alt="" class="icon icon-white">
+                <span class="menu-text">Schedule</span>
+            </a>
+            
+            <a href="/availability" class="menu-item" data-page="availability">
+                <img src="{{ url_for('static', filename='bootstrap-icons/bar-chart-line.svg') }}" alt="" class="icon icon-white">
+                <span class="menu-text">Availability</span>
+            </a>
+            
+            <a href="/locations" class="menu-item active" data-page="locations">
+                <img src="{{ url_for('static', filename='bootstrap-icons/geo-alt.svg') }}" alt="" class="icon icon-white">
+                <span class="menu-text">Locations</span>
+            </a>
+            
+            <div style="margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.05);"></div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header">
+            <div class="header-content">
+                <div>
+                    <h1><i class="bi bi-geo-alt"></i> Manage Locations</h1>
+                    <p>Configure and manage Zabbix monitoring locations</p>
+                </div>
+                <button class="add-btn" onclick="openAddModal()">
+                    <i class="bi bi-plus-circle"></i> Add New Location
+                </button>
+            </div>
+        </div>
+        <div class="container-main">
+            <div id="loadingState" class="loading-container">
+                <div class="spinner"></div>
+                <h3>Loading locations...</h3>
+            </div>
+            <div id="locationsList" class="locations-list" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Add Location Modal -->
+    <div class="modal-backdrop" id="addModalBackdrop"></div>
+    <div class="modal-wrapper" id="addModalWrapper">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2 class="modal-title"><i class="bi bi-plus-circle"></i> Add New Location</h2>
+                <button class="modal-close" type="button" onclick="closeAddModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="addLocationForm" onsubmit="handleAddLocation(event)">
+                    <div class="form-group">
+                        <label class="form-label">Location Name *</label>
+                        <input type="text" class="form-control" id="addLocationName" required placeholder="e.g., Chennai DC">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Zabbix URL *</label>
+                        <input type="url" class="form-control" id="addZabbixUrl" required placeholder="https://zabbix.example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-control" id="addUsername" required placeholder="Admin">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password *</label>
+                        <input type="password" class="form-control" id="addPassword" required placeholder="Enter password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Token</label>
+                        <input type="text" class="form-control" id="addToken" placeholder="Zabbix API token (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" id="addDescription" placeholder="Optional description">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeAddModal()">Cancel</button>
+                <button class="btn btn-primary" type="button" onclick="document.getElementById('addLocationForm').requestSubmit()">
+                    <i class="bi bi-check-circle"></i> Add Location
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- Edit Location Modal -->
+    <div class="modal-backdrop" id="editModalBackdrop"></div>
+    <div class="modal-wrapper" id="editModalWrapper">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2 class="modal-title"><img src="{{ url_for('static', filename='bootstrap-icons/pencil-square.svg') }}" class="icon icon-white"> Edit Location</h2>
+                <button class="modal-close" type="button" onclick="closeEditModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="editLocationForm" onsubmit="handleEditLocation(event)">
+                    <input type="hidden" id="editLocationId">
+                    <div class="form-group">
+                        <label class="form-label">Location Name</label>
+                        <input type="text" class="form-control" id="editLocationName" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Zabbix URL *</label>
+                        <input type="url" class="form-control" id="editZabbixUrl" required placeholder="https://zabbix.example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Username *</label>
+                        <input type="text" class="form-control" id="editUsername" required placeholder="Admin">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password *</label>
+                        <input type="password" class="form-control" id="editPassword" required placeholder="Enter new password">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Token</label>
+                        <input type="text" class="form-control" id="editToken" placeholder="Zabbix API token (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <input type="text" class="form-control" id="editDescription" placeholder="Optional description">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" type="button" onclick="document.getElementById('editLocationForm').requestSubmit()">
+                    <img src="{{ url_for('static', filename='bootstrap-icons/check-circle.svg') }}" class="icon icon-white"> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+    <script>
+        let locationsData = {};
+        // Open/Close Add Modal
+        function openAddModal() {
+            document.getElementById('addModalBackdrop').classList.add('show');
+            document.getElementById('addModalWrapper').classList.add('show');
+        }
+        function closeAddModal() {
+            document.getElementById('addModalBackdrop').classList.remove('show');
+            document.getElementById('addModalWrapper').classList.remove('show');
+            document.getElementById('addLocationForm').reset();
+        }
+        // Handle Add Location
+        async function handleAddLocation(event) {
+            event.preventDefault();
+            const data = {
+                name: document.getElementById('addLocationName').value.trim(),
+                url: document.getElementById('addZabbixUrl').value.trim(),
+                username: document.getElementById('addUsername').value.trim(),
+                password: document.getElementById('addPassword').value.trim(),
+                token: document.getElementById('addToken').value.trim(),
+                description: document.getElementById('addDescription').value.trim()
+            };
+            if (!data.name || !data.url || !data.username || !data.password) {
+                alert('❌ Please fill in all required fields');
+                return;
+            }
+            try {
+                const response = await fetch('/api/locations/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const result = await response.json();
+                if (result.success) { alert('✅ Location added successfully!'); closeAddModal(); loadLocations(); } 
+                else { alert('❌ Error: ' + (result.error || 'Failed to add location')); }
+            } catch (error) { alert('❌ Error: ' + error.message); }
+        }
+        // Open/Close Edit Modal
+        function openEditModal(locationName) {
+            const location = locationsData[locationName];
+            if (!location) { alert('Error: Location data not found'); return; }
+            document.getElementById('editLocationId').value = locationName;
+            document.getElementById('editLocationName').value = locationName;
+            document.getElementById('editZabbixUrl').value = location.url || '';
+            document.getElementById('editUsername').value = location.username || '';
+            document.getElementById('editPassword').value = '';
+            document.getElementById('editToken').value = location.token || '';
+            document.getElementById('editDescription').value = location.description || '';
+            document.getElementById('editModalBackdrop').classList.add('show');
+            document.getElementById('editModalWrapper').classList.add('show');
+        }
+        function closeEditModal() {
+            document.getElementById('editModalBackdrop').classList.remove('show');
+            document.getElementById('editModalWrapper').classList.remove('show');
+            document.getElementById('editLocationForm').reset();
+        }
+        // Handle Edit Location
+        async function handleEditLocation(event) {
+            event.preventDefault();
+            const locationName = document.getElementById('editLocationId').value;
+            const data = {
+                url: document.getElementById('editZabbixUrl').value.trim(),
+                username: document.getElementById('editUsername').value.trim(),
+                password: document.getElementById('editPassword').value.trim(),
+                token: document.getElementById('editToken').value.trim(),
+                description: document.getElementById('editDescription').value.trim()
+            };
+            if (!data.url || !data.username || !data.password) {
+                alert('❌ Please fill in all required fields');
+                return;
+            }
+            try {
+                const response = await fetch(`/api/locations/${encodeURIComponent(locationName)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const result = await response.json();
+                if (result.success) { alert('✅ Location updated successfully!'); closeEditModal(); loadLocations(); } 
+                else { alert('❌ Error: ' + (result.error || 'Failed to update location')); }
+            } catch (error) { alert('❌ Error: ' + error.message); }
+        }
+        // Delete Location
+        async function deleteLocation(locationName) {
+            if (!confirm(`⚠️ Are you sure you want to delete "${locationName}"?\n\nThis action cannot be undone.`)) return;
+            try {
+                const response = await fetch(`/api/locations/${encodeURIComponent(locationName)}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) { alert('✅ Location deleted successfully!'); loadLocations(); } 
+                else { alert('❌ Error: ' + (result.error || 'Failed to delete location')); }
+            } catch (error) { alert('❌ Error: ' + error.message); }
+        }
+        // Load Locations
+        async function loadLocations() {
+            try {
+                const response = await fetch('/api/locations-summary');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                if (!data.success || !data.locations || data.locations.length === 0) {
+                    document.getElementById('loadingState').innerHTML = '<h3>No locations configured</h3>';
+                    return;
+                }
+                const list = document.getElementById('locationsList');
+                list.innerHTML = '';
+                locationsData = {};
+                data.locations.forEach(loc => {
+                    locationsData[loc.location] = {
+                        url: loc.url || 'N/A',
+                        username: loc.username || 'N/A',
+                        token: loc.token || '',
+                        description: loc.description || ''
+                    };
+                    const card = document.createElement('div');
+                    card.className = 'location-card';
+                    const isOnline = loc.success === true;
+                    const statusColor = isOnline ? 'var(--success)' : 'var(--danger)';
+                    const statusText = isOnline ? 'Online' : 'Offline';
+                    const statusIcon = isOnline ? 'check-circle-fill' : 'x-circle-fill';
+                    const escapedName = loc.location.replace(/'/g, "\\'");
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <div class="location-title">
+                                <div class="location-icon"><img src="{{ url_for('static', filename='bootstrap-icons/pin-map-fill.svg') }}" class="icon icon-white"></div>
+                                <div class="location-info">
+                                    <h3 class="location-name">${loc.location}</h3>
+                                    <div class="location-url">${loc.url || 'N/A'}</div>
+                                </div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="btn btn-edit" onclick="openEditModal('${escapedName}')">
+                                    <img src="{{ url_for('static', filename='bootstrap-icons/pencil.svg') }}" class="icon icon-white"> Edit
+                                </button>
+                                <button class="btn btn-delete" onclick="deleteLocation('${escapedName}')">
+                                    <img src="{{ url_for('static', filename='bootstrap-icons/trash.svg') }}" class="icon icon-white"> Delete
+                                </button>
+                            </div>
+                        </div>
+                        <div class="metadata-grid">
+                            <div class="metadata-box">
+                                
+                                <div class="metadata-label">Status</div>
+                                <div class="metadata-value">
+                                    <span class="status-badge ${isOnline ? 'badge-online' : 'badge-offline'}">
+                                        <span class="status-dot"></span>${statusText}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="metadata-box">
+                                
+                                <div class="metadata-label">Username</div>
+                                <div class="metadata-value">${loc.username || 'N/A'}</div>
+                            </div>
+                           
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+                document.getElementById('loadingState').style.display = 'none';
+                list.style.display = 'grid';
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loadingState').innerHTML = `
+                    <div style="color: var(--danger);">
+                       <img src="{{ url_for('static', filename='bootstrap-icons/exclamation-triangle.svg') }}" style="font-size: 48px;">
+                        <h3>Error Loading Locations</h3>
+                        <p>${error.message}</p>
+                        <button class="btn btn-primary" onclick="loadLocations()" style="margin-top: 20px;">
+                           <img src="{{ url_for('static', filename='bootstrap-icons/rrow-clockwise.svg') }}" class="icon icon-white"> Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        window.addEventListener('DOMContentLoaded', loadLocations);
+        document.getElementById('addModalBackdrop').addEventListener('click', closeAddModal);
+        document.getElementById('editModalBackdrop').addEventListener('click', closeEditModal);
+
+function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+        
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
+        }
+    </script>
+</body>
+</html>

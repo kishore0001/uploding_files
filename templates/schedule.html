@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Management - Zabbix Dashboard</title>
+   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.js') }}"></script>
+
+    <style>
+       * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0a0e27;
+    --bg-secondary: #1a1f3a;
+    --bg-card: #1e2541;
+    --text-primary: #ffffff;
+    --text-secondary: #a0aec0;
+    --accent: #6366f1;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --sidebar-width: 260px;
+    --sidebar-collapsed: 70px;
+}
+
+/* Base */
+
+body {
+    background: var(--bg-primary);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Icons */
+
+.icon {
+    width: 1.2rem;
+    height: 1.2rem;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.icon-lg {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+.icon-xl {
+    width: 2rem;
+    height: 2rem;
+}
+
+.icon-white {
+    filter: brightness(0) invert(1);
+}
+
+.icon-accent {
+    filter: brightness(0) saturate(100%) invert(45%) sepia(89%) saturate(2234%)
+        hue-rotate(226deg) brightness(98%) contrast(93%);
+}
+
+.icon-warning {
+    filter: brightness(0) saturate(100%) invert(67%) sepia(76%) saturate(470%)
+        hue-rotate(357deg) brightness(101%) contrast(97%);
+}
+
+.icon-danger {
+    filter: brightness(0) saturate(100%) invert(32%) sepia(97%) saturate(2580%)
+        hue-rotate(345deg) brightness(99%) contrast(92%);
+}
+
+.icon-success {
+    filter: brightness(0) saturate(100%) invert(61%) sepia(48%) saturate(752%)
+        hue-rotate(105deg) brightness(94%) contrast(87%);
+}
+
+/* Sidebar */
+
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    background: var(--bg-secondary);
+    border-right: 1px solid rgba(255,255,255,0.05);
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.sidebar.collapsed {
+    width: var(--sidebar-collapsed);
+}
+
+.sidebar-header {
+    padding: 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.sidebar-logo .logo-text {
+    white-space: nowrap;
+    transition: opacity 0.3s;
+}
+
+.sidebar.collapsed .logo-text {
+    opacity: 0;
+    display: none;
+}
+
+.sidebar-menu {
+    padding: 20px 0;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    gap: 16px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.3s;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+}
+
+.menu-item:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+}
+
+.menu-item.active {
+    background: rgba(99,102,241,0.1);
+    color: var(--accent);
+    border-left-color: var(--accent);
+}
+
+.menu-item .menu-text {
+    white-space: nowrap;
+    transition: opacity 0.3s;
+}
+
+.sidebar.collapsed .menu-text {
+    opacity: 0;
+    display: none;
+}
+
+.sidebar.collapsed .menu-item {
+    justify-content: center;
+    padding: 14px 10px;
+}
+
+/* Legacy icon-based menu items from first block (kept for compatibility) */
+
+.sidebar-logo i {
+    color: var(--accent);
+}
+
+.menu-item i {
+    width: 24px;
+    font-size: 18px;
+    margin-right: 12px;
+}
+
+/* Sidebar toggles */
+
+.sidebar-toggle {
+    background: rgba(255,255,255,0.05);
+    border: none;
+    color: var(--text-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+/* Mobile control button for sidebar on small screens */
+
+.mobile-sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1001;
+    background: var(--accent);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Main content */
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    width: calc(100% - var(--sidebar-width));
+    transition: all 0.3s ease;
+}
+
+.sidebar.collapsed + .main-content {
+    margin-left: var(--sidebar-collapsed);
+    width: calc(100% - var(--sidebar-collapsed));
+}
+
+/* Header */
+
+.header {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--accent) 100%);
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+/* For pages using header-text container */
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.header-text h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.header-text p {
+    margin: 8px 0 0 0;
+    opacity: 0.9;
+}
+
+/* Create / primary action button */
+
+.create-btn {
+    background: var(--success);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s;
+}
+
+.create-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+}
+
+/* Header actions (if multiple buttons) */
+
+.header-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Container */
+
+.container-main {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 40px 32px;
+}
+
+/* Schedule page cards */
+
+.schedule-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.schedule-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.schedule-info {
+    flex: 1;
+    min-width: 300px;
+}
+
+.schedule-info h3 {
+    margin: 0 0 8px 0;
+    font-size: 20px;
+    word-break: break-word;
+}
+
+.schedule-meta {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.schedule-meta strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.schedule-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Action buttons on schedule cards */
+
+.action-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+.action-btn:hover {
+    background: rgba(255,255,255,0.1);
+}
+
+.action-btn.danger {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.action-btn.danger:hover {
+    background: rgba(239,68,68,0.2);
+}
+
+.action-btn.run-now {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+}
+
+.action-btn.run-now:hover {
+    background: #dc2626;
+    box-shadow: 0 4px 12px rgba(239,68,68,0.4);
+}
+
+/* Status badges */
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 12px;
+}
+
+.status-active {
+    background: rgba(16,185,129,0.2);
+    color: var(--success);
+}
+
+.status-inactive {
+    background: rgba(107,114,128,0.2);
+    color: var(--text-secondary);
+}
+
+/* Next run badge */
+
+.next-run-badge {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+    display: inline-block;
+    animation: pulse 2s infinite;
+}
+
+/* Simple pulse for next-run badge */
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.8; }
+}
+
+/* Modal (schedule form) */
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    z-index: 2000;
+    overflow-y: auto;
+    padding: 40px 20px;
+}
+
+.modal.show {
+    display: block;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 700px;
+    margin: 0 auto;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+
+/* Form */
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.form-help {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.form-input {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+textarea.form-input {
+    resize: vertical;
+    min-height: 120px;
+    font-family: 'Inter', sans-serif;
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+/* Empty state */
+
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-secondary);
+}
+
+/* Variables hint */
+
+.variables-hint {
+    background: rgba(99,102,241,0.1);
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.variables-hint code {
+    background: rgba(0,0,0,0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+}
+
+/* Hidden groups */
+
+#customIntervalGroup,
+#customTimeRangeGroup,
+#customSeverityGroup,
+#hostgroupSelectionGroup {
+    display: none;
+}
+
+/* Global stats / dashboard cards (if reused with schedule page) */
+
+.global-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.stat-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.3s;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+
+.stat-icon.total {
+    background: rgba(99,102,241,0.2);
+    color: var(--accent);
+}
+
+.stat-icon.warning {
+    background: rgba(245,158,11,0.2);
+    color: var(--warning);
+}
+
+.stat-icon.critical {
+    background: rgba(239,68,68,0.2);
+    color: var(--danger);
+}
+
+.stat-value {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+/* Loading & error */
+
+.loading {
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.spinner {
+    width: 64px;
+    height: 64px;
+    border: 4px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 24px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.error-state {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid var(--danger);
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+    color: var(--danger);
+}
+
+/* Refresh indicator */
+
+.refresh-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(99,102,241,0.9);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 999;
+}
+
+.refresh-indicator.show {
+    opacity: 1;
+}
+
+.refresh-indicator .pulse {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+    animation: pulse-anim 1s infinite;
+}
+
+@keyframes pulse-anim {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%      { opacity: 0.3; transform: scale(1.2); }
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    .sidebar-toggle {
+        display: block;
+    }
+
+    .mobile-sidebar-toggle {
+        display: flex;
+    }
+
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .sidebar.collapsed + .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .create-btn,
+    .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .schedule-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .schedule-actions {
+        width: 100%;
+    }
+
+    .custom-date-range {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .custom-date-range input,
+    .custom-date-range button {
+        width: 100%;
+    }
+
+    .modal {
+        width: 100%;
+        max-height: 95vh;
+        padding: 20px 10px;
+    }
+}
+
+       
+    </style>
+</head>
+<body>
+   <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo" onclick="toggleSidebar()">
+                <img src="{{ url_for('static', filename='bootstrap-icons/diagram-3.svg') }}" alt="" class="icon-xl icon-accent">
+                <span class="logo-text">I-OPS Monitor</span>
+            </div>
+            
+        </div>
+        
+        <nav class="sidebar-menu">
+            <a href="/" class="menu-item" data-page="dashboard">
+                <img src="{{ url_for('static', filename='bootstrap-icons/speedometer2.svg') }}" alt="" class="icon icon-white">
+                <span class="menu-text">Dashboard</span>
+            </a>
+            
+            <a href="/schedule" class="menu-item active" data-page="schedule">
+                <img src="{{ url_for('static', filename='bootstrap-icons/calendar-check.svg') }}" alt="" class="icon icon-white">
+                <span class="menu-text">Schedule</span>
+            </a>
+            
+            <a href="/availability" class="menu-item" data-page="availability">
+                <img src="{{ url_for('static', filename='bootstrap-icons/bar-chart-line.svg') }}" alt="" class="icon icon-white">
+                <span class="menu-text">Availability</span>
+            </a>
+            
+            <a href="/locations" class="menu-item" data-page="locations">
+                <img src="{{ url_for('static', filename='bootstrap-icons/geo-alt.svg') }}" alt="" class="icon icon-white">
+                <span class="menu-text">Locations</span>
+            </a>
+            
+            <div style="margin: 20px 0; border-top: 1px solid rgba(255,255,255,0.05);"></div>
+        </nav>
+    </aside>
+    <div class="main-content">
+        <div class="header">
+            <div>
+                <h1><img src="{{ url_for('static', filename='bootstrap-icons/calendar-check.svg') }}" class="icon icon-white"> Schedule Management</h1>
+                <p>Automated email reports for your team</p>
+            </div>
+            <button class="create-btn" onclick="openCreateModal()">
+                <img src="{{ url_for('static', filename='bootstrap-icons/plus-circle.svg') }}" alt="" class="icon icon-white"> Create New Schedule
+            </button>
+        </div>
+        
+        <div class="container-main">
+            <div id="schedulesList"></div>
+            
+            <div id="emptyState" class="empty-state" style="display:none;">
+                <img src="{{ url_for('static', filename='bootstrap-icons/calendar-x.svg') }}" style="font-size: 64px; opacity: 0.5;">
+                <h3>No Schedules Yet</h3>
+                <p>Create your first automated report schedule</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="scheduleModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">Create New Schedule</h2>
+            
+            <form id="scheduleForm" onsubmit="saveSchedule(event)">
+                <div class="form-group">
+                    <label class="form-label">Schedule Name *</label>
+                    <input type="text" class="form-input" id="scheduleName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input" id="scheduleDescription" rows="2"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Frequency *</label>
+                    <select class="form-input" id="scheduleFrequency" required onchange="toggleCustomInterval()">
+                        <option value="daily">Daily</option>
+                        <option value="every_2_days">Every 2 Days</option>
+                        <option value="every_3_days">Every 3 Days</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Every 2 Weeks</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="custom">Custom Interval</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="customIntervalGroup">
+                    <label class="form-label">Custom Interval (Days) *</label>
+                    <input type="number" class="form-input" id="customInterval" min="1" max="365" placeholder="e.g., 5 for every 5 days">
+                    <div class="form-help">Enter number of days between reports (1-365)</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Time *</label>
+                    <input type="time" class="form-input" id="scheduleTime" value="09:00" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Report Data Time Range *</label>
+                    <select class="form-input" id="scheduleTimeRange" required onchange="toggleCustomTimeRange()">
+                        <option value="24h">Last 24 Hours</option>
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d">Last 30 Days</option>
+                        <option value="custom_days">Custom Days</option>
+                    </select>
+                    <div class="form-help">Time range for the problem data in the report</div>
+                </div>
+                
+                <div class="form-group" id="customTimeRangeGroup">
+                    <label class="form-label">Custom Time Range (Days) *</label>
+                    <input type="number" class="form-input" id="customTimeRangeDays" min="1" max="365" placeholder="e.g., 14 for last 14 days">
+                    <div class="form-help">Number of days to include in report (1-365)</div>
+                </div>
+                
+             
+                
+                <div class="form-group">
+    <label class="form-label">Severity Filter *</label>
+    <select class="form-input" id="scheduleSeverityFilter" required onchange="toggleCustomSeverity()">
+        <option value="all">All Severities</option>
+        <option value="custom">Select Specific Severities</option>
+    </select>
+    <div class="form-help">Filter problems by severity level (select individual levels)</div>
+</div>
+
+<div class="form-group" id="customSeverityGroup">
+    <label class="form-label">Select Severities (Individual Levels)</label>
+    <div style="background: var(--bg-secondary); padding: 15px; border-radius: 8px;">
+        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+            <input type="checkbox" id="sevdisaster" value="5"> 
+            <span style="color: #dc2626; font-weight: 600;">● Disaster/Down (5) only</span>
+        </label>
+        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+            <input type="checkbox" id="sevhigh" value="4"> 
+            <span style="color: #ef4444; font-weight: 600;">● High (4) only</span>
+        </label>
+        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+            <input type="checkbox" id="sevaverage" value="3"> 
+            <span style="color: #f97316; font-weight: 600;">● Average (3) only</span>
+        </label>
+        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+            <input type="checkbox" id="sevwarning" value="2"> 
+            <span style="color: #f59e0b; font-weight: 600;">● Warning (2) only</span>
+        </label>
+        <label style="display: block; margin-bottom: 8px; cursor: pointer;">
+            <input type="checkbox" id="sevinformation" value="1"> 
+            <span style="color: #3b82f6; font-weight: 600;">● Information (1) only</span>
+        </label>
+        <label style="display: block; cursor: pointer;">
+            <input type="checkbox" id="sevnotclassified" value="0"> 
+            <span style="color: #6b7280;">● Not Classified (0) only</span>
+        </label>
+    </div>
+    <div class="form-help" style="margin-top: 8px;">
+        💡 <strong>Example:</strong> Select "Disaster (5)" and "High (4)" to get only those two severity levels
+    </div>
+</div>
+
+                <div class="form-group">
+                    <label class="form-label">Hostgroup Filter *</label>
+                    <select class="form-input" id="scheduleHostgroupFilter" required onchange="toggleHostgroupSelection()">
+                        <option value="all">All Hostgroups</option>
+                        <option value="custom">Select Specific Hostgroups</option>
+                    </select>
+                    <div class="form-help">Filter problems by hostgroup</div>
+                </div>
+                
+                <div class="form-group" id="hostgroupSelectionGroup">
+                    <label class="form-label">Select Hostgroups</label>
+                    <div id="hostgroupCheckboxes" style="background: var(--bg-secondary); padding: 15px; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                        <p style="text-align: center; color: var(--text-secondary);">Loading hostgroups...</p>
+                    </div>
+                    <div class="form-help">Select one or more hostgroups to include in the report</div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Recipients * (comma-separated emails)</label>
+                    <input type="text" class="form-input" id="scheduleRecipients" placeholder="email1@example.com, email2@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email Subject *</label>
+                    <input type="text" class="form-input" id="scheduleSubject" value="Zabbix Monitoring Report" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email Body (Custom Message)</label>
+                    <textarea class="form-input" id="scheduleBody" rows="6" placeholder="Enter your custom message here...
+
+The problem summary will be automatically added below your message."></textarea>
+                    <div class="variables-hint">
+                        <strong>💡 Available Variables:</strong><br>
+                        <code>{{report_name}}</code> - Schedule name<br>
+                        <code>{{date}}</code> - Current date<br>
+                        <code>{{time_range}}</code> - Report time range<br>
+                        <code>{{total_problems}}</code> - Total problem count<br>
+                        <code>{{active_problems}}</code> - Active problem count
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="action-btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="create-btn">Save Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let currentScheduleId = null;
+        let availableHostgroups = [];
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function toggleCustomInterval() {
+            const frequency = document.getElementById('scheduleFrequency').value;
+            const customGroup = document.getElementById('customIntervalGroup');
+            const customInput = document.getElementById('customInterval');
+            
+            if (frequency === 'custom') {
+                customGroup.style.display = 'block';
+                customInput.required = true;
+            } else {
+                customGroup.style.display = 'none';
+                customInput.required = false;
+            }
+        }
+        
+        function toggleCustomTimeRange() {
+            const timeRange = document.getElementById('scheduleTimeRange').value;
+            const customGroup = document.getElementById('customTimeRangeGroup');
+            const customInput = document.getElementById('customTimeRangeDays');
+            
+            if (timeRange === 'custom_days') {
+                customGroup.style.display = 'block';
+                customInput.required = true;
+            } else {
+                customGroup.style.display = 'none';
+                customInput.required = false;
+            }
+        }
+        
+        function toggleCustomSeverity() {
+            const severityFilter = document.getElementById('scheduleSeverityFilter').value;
+            const customGroup = document.getElementById('customSeverityGroup');
+            
+            if (severityFilter === 'custom') {
+                customGroup.style.display = 'block';
+            } else {
+                customGroup.style.display = 'none';
+            }
+        }
+        
+        function toggleHostgroupSelection() {
+            const hostgroupFilter = document.getElementById('scheduleHostgroupFilter').value;
+            const selectionGroup = document.getElementById('hostgroupSelectionGroup');
+            
+            if (hostgroupFilter === 'custom') {
+                selectionGroup.style.display = 'block';
+                if (availableHostgroups.length === 0) {
+                    loadHostgroups();
+                }
+            } else {
+                selectionGroup.style.display = 'none';
+            }
+        }
+        
+        async function loadHostgroups() {
+            const container = document.getElementById('hostgroupCheckboxes');
+            container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Loading hostgroups...</p>';
+            
+            try {
+                const response = await fetch('/api/all-hostgroups');
+                const data = await response.json();
+                
+                if (data.success) {
+                    availableHostgroups = data.hostgroups;
+                    displayHostgroupCheckboxes(availableHostgroups);
+                } else {
+                    container.innerHTML = '<p style="text-align: center; color: var(--danger);">Error loading hostgroups</p>';
+                }
+            } catch (error) {
+                console.error('Error loading hostgroups:', error);
+                container.innerHTML = '<p style="text-align: center; color: var(--danger);">Failed to load hostgroups</p>';
+            }
+        }
+        
+        function displayHostgroupCheckboxes(hostgroups) {
+            const container = document.getElementById('hostgroupCheckboxes');
+            
+            if (hostgroups.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No hostgroups found</p>';
+                return;
+            }
+            
+            const byLocation = {};
+            hostgroups.forEach(hg => {
+                if (!byLocation[hg.location]) {
+                    byLocation[hg.location] = [];
+                }
+                byLocation[hg.location].push(hg);
+            });
+            
+            let html = '';
+            for (const [location, groups] of Object.entries(byLocation)) {
+                html += `<div style="margin-bottom: 15px;">`;
+                html += `<div style="font-weight: 600; color: var(--accent); margin-bottom: 8px; padding: 5px; background: rgba(99,102,241,0.1); border-radius: 4px;">${escapeHtml(location)}</div>`;
+                
+                groups.forEach(hg => {
+                    const escapedLocation = escapeHtml(hg.location);
+                    const escapedName = escapeHtml(hg.name);
+                    const value = `${escapedLocation}:::${escapedName}`;
+                    
+                    html += `
+                        <label style="display: block; margin-bottom: 6px; padding-left: 10px; cursor: pointer;">
+                            <input type="checkbox" class="hostgroup-checkbox" value="${value}" data-location="${escapedLocation}" data-name="${escapedName}">
+                            <span>${escapedName}</span>
+                        </label>
+                    `;
+                });
+                
+                html += `</div>`;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        function getSelectedSeverities() {
+    const severityFilter = document.getElementById('scheduleSeverityFilter').value;
+    
+    if (severityFilter === 'all') return null;
+    
+    if (severityFilter === 'custom') {
+        const selected = [];
+        if (document.getElementById('sevdisaster').checked) selected.push(5);
+        if (document.getElementById('sevhigh').checked) selected.push(4);
+        if (document.getElementById('sevaverage').checked) selected.push(3);
+        if (document.getElementById('sevwarning').checked) selected.push(2);
+        if (document.getElementById('sevinformation').checked) selected.push(1);
+        if (document.getElementById('sevnotclassified').checked) selected.push(0);
+        return selected.length > 0 ? selected : null;
+    }
+    
+    return null;
+}
+
+        
+        function getSelectedHostgroups() {
+            const hostgroupFilter = document.getElementById('scheduleHostgroupFilter').value;
+            
+            if (hostgroupFilter === 'all') return null;
+            
+            if (hostgroupFilter === 'custom') {
+                const checkboxes = document.querySelectorAll('.hostgroup-checkbox:checked');
+                const selected = [];
+                
+                checkboxes.forEach(cb => {
+                    selected.push({
+                        location: cb.dataset.location,
+                        name: cb.dataset.name
+                    });
+                });
+                
+                return selected.length > 0 ? selected : null;
+            }
+            
+            return null;
+        }
+        
+        function getFrequencyLabel(schedule) {
+            const freqMap = {
+                'daily': 'Daily',
+                'every_2_days': 'Every 2 Days',
+                'every_3_days': 'Every 3 Days',
+                'weekly': 'Weekly',
+                'biweekly': 'Every 2 Weeks',
+                'monthly': 'Monthly',
+                'custom': `Every ${schedule.custom_interval || '?'} Days`
+            };
+            return freqMap[schedule.frequency] || schedule.frequency;
+        }
+        
+        function getTimeRangeLabel(schedule) {
+            const rangeMap = {
+                '24h': 'Last 24 Hours',
+                '7d': 'Last 7 Days',
+                '30d': 'Last 30 Days',
+                'custom_days': `Last ${schedule.custom_time_range_days || '?'} Days`
+            };
+            return rangeMap[schedule.time_range] || schedule.time_range;
+        }
+        
+        function getSeverityFilterLabel(schedule) {
+    const filter = schedule.severity_filter || 'all';
+    
+    if (filter === 'all') return 'All Severities';
+    
+    if (filter === 'custom' && schedule.custom_severities) {
+        const severityNames = {
+            5: 'Disaster',
+            4: 'High',
+            3: 'Average',
+            2: 'Warning',
+            1: 'Information',
+            0: 'Not Classified'
+        };
+        
+        const names = schedule.custom_severities
+            .sort((a, b) => b - a)
+            .map(s => severityNames[s] || s)
+            .join(', ');
+        
+        return `Custom (${names})`;
+    }
+    
+    return 'All Severities';
+}
+
+        
+        function getHostgroupFilterLabel(schedule) {
+            const filter = schedule.hostgroup_filter || 'all';
+            
+            if (filter === 'all') return 'All Hostgroups';
+            
+            if (filter === 'custom' && schedule.selected_hostgroups) {
+                return `Custom (${schedule.selected_hostgroups.length} groups)`;
+            }
+            
+            return 'All Hostgroups';
+        }
+        
+        async function loadSchedules() {
+            try {
+                const response = await fetch('/api/schedules');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displaySchedules(data.schedules);
+                }
+            } catch (error) {
+                console.error('Error loading schedules:', error);
+            }
+        }
+        
+        async function displaySchedules(schedules) {
+            const list = document.getElementById('schedulesList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (schedules.length === 0) {
+                list.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            let nextRuns = {};
+            try {
+                const response = await fetch('/api/schedules/all-next-runs');
+                const data = await response.json();
+                if (data.success) {
+                    nextRuns = data.next_runs;
+                }
+            } catch (error) {
+                console.error('Error fetching next run times:', error);
+            }
+            
+            list.innerHTML = schedules.map(schedule => {
+                const nextRunInfo = nextRuns[schedule.id];
+                let nextRunDisplay = '';
+                
+                if (schedule.active && nextRunInfo) {
+                    const nextRunDate = new Date(nextRunInfo.next_run);
+                    const now = new Date();
+                    const diffMs = nextRunDate - now;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+                    
+                    let timeUntil = '';
+                    let badgeColor = '#10b981';
+                    
+                    if (diffDays > 0) {
+                        timeUntil = `${diffDays}d`;
+                    } else if (diffHours > 0) {
+                        timeUntil = `${diffHours}h`;
+                        badgeColor = '#f59e0b';
+                    } else if (diffMins > 0) {
+                        timeUntil = `${diffMins}m`;
+                        badgeColor = '#ef4444';
+                    } else {
+                        timeUntil = 'NOW';
+                        badgeColor = '#dc2626';
+                    }
+                    
+                    nextRunDisplay = `
+                        <br>
+                        <img src="{{ url_for('static', filename='bootstrap-icons/clock-history.svg') }}" style="color: ${badgeColor};">
+                        <strong>Next run:</strong> ${nextRunInfo.next_run_formatted}
+                        <span class="next-run-badge" style="background: ${badgeColor};">
+                            <img src="{{ url_for('static', filename='bootstrap-icons/alarm.svg') }}" class="icon icon-white" > ${timeUntil}
+                        </span>
+                    `;
+                }
+                
+                return `
+                    <div class="schedule-card">
+                        <div class="schedule-info">
+                            <h3>
+                                ${escapeHtml(schedule.name)}
+                                <span class="status-badge status-${schedule.active ? 'active' : 'inactive'}">
+                                    ${schedule.active ? 'Active' : 'Inactive'}
+                                </span>
+                            </h3>
+                            <div class="schedule-meta">
+                                <img src="{{ url_for('static', filename='bootstrap-icons/arrow-repeat.svg') }}" class="icon icon-white"> ${getFrequencyLabel(schedule)} at ${schedule.time} 
+                                | <img src="{{ url_for('static', filename='bootstrap-icons/calendar-range.svg') }}" class="icon icon-white"> ${getTimeRangeLabel(schedule)}
+                                | <img src="{{ url_for('static', filename='bootstrap-icons/funnel.svg') }}" class="icon icon-white"> ${getSeverityFilterLabel(schedule)}
+                                | <img src="{{ url_for('static', filename='bootstrap-icons/folder.svg') }}" class="icon icon-white"> ${getHostgroupFilterLabel(schedule)}
+                                <br><img src="{{ url_for('static', filename='bootstrap-icons/envelope.svg') }}" class="icon icon-white"> ${escapeHtml(schedule.recipients)}
+                                ${schedule.last_run ? `<br><img src="{{ url_for('static', filename='bootstrap-icons/check-circle.svg') }}" class="icon icon-white"> Last run: ${new Date(schedule.last_run).toLocaleString()} (${schedule.last_status || 'unknown'})` : ''}
+                                ${nextRunDisplay}
+                            </div>
+                        </div>
+                        <div class="schedule-actions">
+                            <button class="action-btn run-now" onclick="forceRunNow(${schedule.id})" title="Run Now & Send Email">
+                              <img src="{{ url_for('static', filename='bootstrap-icons/lightning-fill.svg') }}" class="icon icon-white"> <b>Run Now </b> 
+                            </button>
+                            <button class="action-btn" onclick="testSchedule(${schedule.id})" title="Test Email">
+                                 <img src="{{ url_for('static', filename='bootstrap-icons/play-circle.svg') }}" class="icon icon-white"> <b>Test</b>
+                            </button>
+                            <button class="action-btn" onclick="toggleSchedule(${schedule.id})" title="Toggle Active">
+                                <img src="{{ url_for('static', filename='bootstrap-icons/power.svg') }}" class=" icon icon-white" >
+                            </button>
+                            <button class="action-btn" onclick="editSchedule(${schedule.id})" title="Edit">
+                                <img src="{{ url_for('static', filename='bootstrap-icons/pencil.svg') }}" class="icon icon-white">
+                            </button>
+                            <button class="action-btn danger" onclick="deleteSchedule(${schedule.id})" title="Delete">
+                                 <img src="{{ url_for('static', filename='bootstrap-icons/trash.svg') }}" class="icon icon-white">
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function forceRunNow(id) {
+            if (!confirm('🚀 Force run this schedule and send email immediately?')) return;
+            
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<img src="{{ url_for('static', filename='bootstrap-icons/hourglass-split.svg') }}" class="icon icon-white"> Running...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(`/api/schedules/${id}/force-run`, {method: 'POST'});
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`✅ Email sent successfully!\n\nRecipients: ${result.recipients}\nTotal Problems: ${result.total_problems}`);
+                    loadSchedules();
+                } else {
+                    alert('❌ Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error forcing run:', error);
+                alert('❌ Error forcing run');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+        
+        function openCreateModal() {
+            currentScheduleId = null;
+            document.getElementById('modalTitle').textContent = 'Create New Schedule';
+            document.getElementById('scheduleForm').reset();
+            document.getElementById('scheduleTime').value = '09:00';
+            document.getElementById('scheduleSubject').value = 'Zabbix Monitoring Report';
+            
+            document.getElementById('sevdisaster').checked = false;
+            document.getElementById('sevhigh').checked = false;
+            document.getElementById('sevaverage').checked = false;
+            document.getElementById('sevwarning').checked = false;
+            document.getElementById('sevinformation').checked = false;
+            document.getElementById('sevnotclassified').checked = false;
+            
+            toggleCustomInterval();
+            toggleCustomTimeRange();
+            toggleCustomSeverity();
+            toggleHostgroupSelection();
+            document.getElementById('scheduleModal').classList.add('show');
+        }
+        
+        async function editSchedule(id) {
+            try {
+                const response = await fetch('/api/schedules');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const schedule = data.schedules.find(s => s.id === id);
+                    if (schedule) {
+                        currentScheduleId = id;
+                        document.getElementById('modalTitle').textContent = 'Edit Schedule';
+                        document.getElementById('scheduleName').value = schedule.name;
+                        document.getElementById('scheduleDescription').value = schedule.description || '';
+                        document.getElementById('scheduleFrequency').value = schedule.frequency;
+                        document.getElementById('customInterval').value = schedule.custom_interval || '';
+                        document.getElementById('scheduleTime').value = schedule.time;
+                        document.getElementById('scheduleTimeRange').value = schedule.time_range || '24h';
+                        document.getElementById('customTimeRangeDays').value = schedule.custom_time_range_days || '';
+                        document.getElementById('scheduleSeverityFilter').value = schedule.severity_filter || 'all';
+                        document.getElementById('scheduleHostgroupFilter').value = schedule.hostgroup_filter || 'all';
+                        
+                        if (schedule.custom_severities && Array.isArray(schedule.custom_severities)) {
+                            document.getElementById('sevdisaster').checked = schedule.custom_severities.includes(5);
+                            document.getElementById('sevhigh').checked = schedule.custom_severities.includes(4);
+                            document.getElementById('sevaverage').checked = schedule.custom_severities.includes(3);
+                            document.getElementById('sevwarning').checked = schedule.custom_severities.includes(2);
+                            document.getElementById('sevinformation').checked = schedule.custom_severities.includes(1);
+                            document.getElementById('sevnotclassified').checked = schedule.custom_severities.includes(0);
+                        }
+                        
+                        document.getElementById('scheduleRecipients').value = schedule.recipients;
+                        document.getElementById('scheduleSubject').value = schedule.subject;
+                        document.getElementById('scheduleBody').value = schedule.body || '';
+                        
+                        toggleCustomInterval();
+                        toggleCustomTimeRange();
+                        toggleCustomSeverity();
+                        toggleHostgroupSelection();
+                        
+                        if (schedule.hostgroup_filter === 'custom' && schedule.selected_hostgroups) {
+                            if (availableHostgroups.length === 0) {
+                                await loadHostgroups();
+                            }
+                            
+                            setTimeout(() => {
+                                schedule.selected_hostgroups.forEach(hg => {
+                                    const value = `${escapeHtml(hg.location)}:::${escapeHtml(hg.name)}`;
+                                    const checkbox = document.querySelector(`.hostgroup-checkbox[value="${value}"]`);
+                                    if (checkbox) checkbox.checked = true;
+                                });
+                            }, 200);
+                        }
+                        
+                        document.getElementById('scheduleModal').classList.add('show');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+                alert('Failed to load schedule details');
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('scheduleModal').classList.remove('show');
+        }
+        
+        async function saveSchedule(event) {
+            event.preventDefault();
+            
+            const frequency = document.getElementById('scheduleFrequency').value;
+            const timeRange = document.getElementById('scheduleTimeRange').value;
+            const severityFilter = document.getElementById('scheduleSeverityFilter').value;
+            const hostgroupFilter = document.getElementById('scheduleHostgroupFilter').value;
+            
+            if (hostgroupFilter === 'custom') {
+                const selected = getSelectedHostgroups();
+                if (!selected || selected.length === 0) {
+                    alert('Please select at least one hostgroup or choose "All Hostgroups"');
+                    return;
+                }
+            }
+            
+            if (severityFilter === 'custom') {
+                const selected = getSelectedSeverities();
+                if (!selected || selected.length === 0) {
+                    alert('Please select at least one severity level or choose a preset option');
+                    return;
+                }
+            }
+            
+            const data = {
+                name: document.getElementById('scheduleName').value,
+                description: document.getElementById('scheduleDescription').value,
+                frequency: frequency,
+                custom_interval: frequency === 'custom' ? parseInt(document.getElementById('customInterval').value) : null,
+                time: document.getElementById('scheduleTime').value,
+                time_range: timeRange,
+                custom_time_range_days: timeRange === 'custom_days' ? parseInt(document.getElementById('customTimeRangeDays').value) : null,
+                severity_filter: severityFilter,
+                custom_severities: getSelectedSeverities(),
+                hostgroup_filter: hostgroupFilter,
+                selected_hostgroups: getSelectedHostgroups(),
+                recipients: document.getElementById('scheduleRecipients').value,
+                subject: document.getElementById('scheduleSubject').value,
+                body: document.getElementById('scheduleBody').value,
+                active: true
+            };
+            
+            try {
+                const url = currentScheduleId ? `/api/schedules/${currentScheduleId}` : '/api/schedules';
+                const method = currentScheduleId ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeModal();
+                    loadSchedules();
+                    alert('Schedule saved successfully!');
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error saving schedule:', error);
+                alert('Error saving schedule. Please try again.');
+            }
+        }
+        
+        async function toggleSchedule(id) {
+            try {
+                const response = await fetch(`/api/schedules/${id}/toggle`, {method: 'POST'});
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadSchedules();
+                } else {
+                    alert('Error toggling schedule');
+                }
+            } catch (error) {
+                console.error('Error toggling schedule:', error);
+                alert('Error toggling schedule');
+            }
+        }
+        
+        async function testSchedule(id) {
+            if (!confirm('Send test email now?')) return;
+            
+            try {
+                const response = await fetch(`/api/schedules/${id}/test`, {method: 'POST'});
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Test email sent successfully!');
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error testing schedule:', error);
+                alert('Error sending test email');
+            }
+        }
+        
+        async function deleteSchedule(id) {
+            if (!confirm('Delete this schedule? This cannot be undone.')) return;
+            
+            try {
+                const response = await fetch(`/api/schedules/${id}`, {method: 'DELETE'});
+                const result = await response.json();
+                
+                if (result.success) {
+                    loadSchedules();
+                    alert('Schedule deleted successfully');
+                } else {
+                    alert('Error deleting schedule');
+                }
+            } catch (error) {
+                console.error('Error deleting schedule:', error);
+                alert('Error deleting schedule');
+            }
+        }
+        
+        document.getElementById('scheduleModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        
+        document.getElementById('sidebarToggle')?.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
+        });
+        
+        setInterval(() => {
+            loadSchedules();
+        }, 60000);
+        
+        loadSchedules();
+function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+        
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('mobile-open');
+        }
+    </script>
+</body>
+</html>
